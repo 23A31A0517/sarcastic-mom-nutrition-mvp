@@ -3,98 +3,119 @@
 import { useState } from "react";
 
 export default function Home() {
-  const [meal, setMeal] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [step, setStep] = useState(1);
+  const [problem, setProblem] = useState("");
+  const [answers, setAnswers] = useState({});
+  const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!meal.trim()) return;
+  const handleNext = () => setStep(step + 1);
 
-    const userMessage = { role: "user", content: meal };
-    setMessages((prev) => [...prev, userMessage]);
-    setMeal("");
+  const handleSubmit = async () => {
     setLoading(true);
 
-    try {
-      const res = await fetch("/api/advice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ meal })
-      });
+    const res = await fetch("/api/advice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ problem, answers })
+    });
 
-      const data = await res.json();
-
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.reply }
-      ]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            "Oh wonderful. It broke. Maybe eat a vegetable while we fix this."
-        }
-      ]);
-    } finally {
-      setLoading(false);
-    }
+    const data = await res.json();
+    setResult(data.reply);
+    setLoading(false);
+    setStep(3);
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg p-6 flex flex-col">
-        <h1 className="text-2xl font-bold text-center mb-2">
-          🥦 Sarcastic Mom Nutrition Advisor
+    <main className="min-h-screen flex items-center justify-center p-6 bg-gray-100">
+      <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg p-6">
+
+        <h1 className="text-2xl font-bold text-center mb-4">
+          💇 Sarcastic Mom Health Lab
         </h1>
 
-        <p className="text-sm text-center text-gray-500 mb-6">
-          Log your meal. Get judged lovingly.
-        </p>
-
-        <div className="flex-1 space-y-3 overflow-y-auto mb-4">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`p-3 rounded-xl text-sm max-w-[80%] ${
-                msg.role === "user"
-                  ? "bg-blue-100 ml-auto text-right"
-                  : "bg-gray-200"
-              }`}
+        {step === 1 && (
+          <div className="space-y-4">
+            <p>Select your problem:</p>
+            <button
+              onClick={() => { setProblem("hairfall"); handleNext(); }}
+              className="bg-red-100 p-3 rounded-xl w-full"
             >
-              {msg.content}
-            </div>
-          ))}
+              Hairfall
+            </button>
+            <button
+              onClick={() => { setProblem("pimples"); handleNext(); }}
+              className="bg-red-100 p-3 rounded-xl w-full"
+            >
+              Pimples
+            </button>
+          </div>
+        )}
 
-          {loading && (
-            <div className="bg-gray-200 p-3 rounded-xl text-sm max-w-[80%]">
-              Judging...
-            </div>
-          )}
-        </div>
+        {step === 2 && (
+          <div className="space-y-4">
+            <p>Answer honestly. Mom knows anyway.</p>
 
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            type="text"
-            value={meal}
-            onChange={(e) => setMeal(e.target.value)}
-            placeholder="What did you eat?"
-            className="flex-1 border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 disabled:opacity-50"
-          >
-            Judge Me
-          </button>
-        </form>
+            <input
+              type="number"
+              placeholder="How many hours do you sleep?"
+              className="border p-2 rounded-xl w-full"
+              onChange={(e) =>
+                setAnswers({ ...answers, sleep: e.target.value })
+              }
+            />
+
+            <input
+              type="number"
+              placeholder="Stress level (1-10)"
+              className="border p-2 rounded-xl w-full"
+              onChange={(e) =>
+                setAnswers({ ...answers, stress: e.target.value })
+              }
+            />
+
+            <input
+              type="text"
+              placeholder="Protein intake (low/medium/high)"
+              className="border p-2 rounded-xl w-full"
+              onChange={(e) =>
+                setAnswers({ ...answers, protein: e.target.value })
+              }
+            />
+
+            <button
+              onClick={handleSubmit}
+              className="bg-blue-500 text-white px-4 py-2 rounded-xl w-full"
+            >
+              Let Mom Analyze
+            </button>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-4">
+            {loading ? (
+              <p>Mom is judging...</p>
+            ) : (
+              <>
+                <div className="bg-gray-200 p-4 rounded-xl">
+                  {result}
+                </div>
+                <button
+                  onClick={() => { setStep(1); setResult(null); }}
+                  className="bg-gray-300 p-2 rounded-xl w-full"
+                >
+                  Start Again
+                </button>
+              </>
+            )}
+          </div>
+        )}
 
         <p className="text-xs text-gray-400 mt-6 text-center">
           This is not medical advice.
         </p>
+
       </div>
     </main>
   );
