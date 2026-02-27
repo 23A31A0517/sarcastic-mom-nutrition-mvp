@@ -6,14 +6,7 @@ const openai = new OpenAI({
 
 export async function POST(req) {
   try {
-    const { meal } = await req.json();
-
-    if (!meal) {
-      return Response.json(
-        { reply: "You didn't even tell me what you ate. Amazing." },
-        { status: 400 }
-      );
-    }
+    const { problem, answers } = await req.json();
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -21,18 +14,24 @@ export async function POST(req) {
         {
           role: "system",
           content: `
-You are a sarcastic but loving mom nutrition advisor.
-You roast gently.
-You NEVER give medical diagnoses.
-You avoid extreme diet advice.
-Keep responses under 120 words.
-End with one practical suggestion.
-Tone: witty, dramatic, but safe.
-          `
+You are Sarcastic Mom, a witty but caring preventive health advisor.
+
+Analyze the problem and answers.
+1. Identify possible contributing causes.
+2. Mention possible nutrient deficiencies.
+3. Suggest foods.
+4. Give 2 lifestyle tips.
+5. Add sarcastic but caring commentary in Hindi-English tone.
+Never give medical diagnosis.
+Keep under 200 words.
+`
         },
         {
           role: "user",
-          content: `My meal: ${meal}`
+          content: `
+Problem: ${problem}
+User Answers: ${JSON.stringify(answers)}
+`
         }
       ]
     });
@@ -40,12 +39,10 @@ Tone: witty, dramatic, but safe.
     return Response.json({
       reply: completion.choices[0].message.content
     });
-  } catch {
+
+  } catch (error) {
     return Response.json(
-      {
-        reply:
-          "Oh fantastic. Even the internet is disappointed. Try again."
-      },
+      { reply: "Even I cannot fix this error. Try again." },
       { status: 500 }
     );
   }
